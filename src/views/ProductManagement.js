@@ -19,15 +19,53 @@ import {
   CFormGroup,
   CLabel,
   CInput,
+  CInputFile
 } from "@coreui/react";
+import request from '../services/request'
+import helper from '../services/helper'
 
 const ProductManagement = () => {
-  const [product, setProduct] = useState(usersData);
+  const [productAll, setProductAll] = useState([])
+  const [product, setProduct] = useState([]);
   const [productSelected, setProductSelected] = useState({});
   const [productType, setProductType] = useState(PRODUCTTYPE[0]);
   const [showModalDetail, setShowModalDetail] = useState(false);
   const [mode, setMode] = useState("VIEW");
-  useEffect(() => { }, [productType]);
+  const [isUpdate, setIsUpdate] = useState(0)
+
+  useEffect(() => {
+    let fetchData = async () => {
+      let result = await request.request('/api/product', '', 'GET')
+      setProductAll(result.data)
+    }
+    fetchData()
+  }, [isUpdate])
+
+  useEffect(() => {
+    let p = productAll.filter(e => e.type === productType)
+    setProduct(p)
+  }, [productAll, productType])
+
+  const handleChangeProduct = (name, value) => {
+    let p = { ...productSelected }
+    p[name] = value
+    setProductSelected(p)
+  }
+  const handleValidate = () => {
+    let result = true;
+    for (let f of fields) {
+      if (f.key !== 'no' && f.key !== 'actions' && f.key !== 'sale')
+        if (!productSelected[f.key]) {
+          helper.toast('error', 'Missing ' + f.label)
+          result = false
+        }
+    }
+    if (!productSelected.image) {
+      helper.toast('error', 'Missing Image')
+      result = false
+    }
+    return result
+  }
   return (
     <CCard accentColor="success">
       <CCardHeader>
@@ -41,6 +79,7 @@ const ProductManagement = () => {
               className="card-header-actions"
               onClick={() => {
                 setMode("CREATE");
+                setProductSelected({ type: productType })
                 setShowModalDetail(true);
               }}
             >
@@ -69,13 +108,15 @@ const ProductManagement = () => {
               itemsPerPage={5}
               pagination
               scopedSlots={{
+                no: (item, index) => (
+                  <td>{index + 1}</td>
+                ),
                 sale: (item) => (
                   <td>
                     <h4>
                       <CBadge color="danger">
                         {Math.floor(
-                          // 100 - (item.promoPrice / item.price) * 100
-                          Math.random() * 100
+                          100 - (item.promoPrice / item.price) * 100
                         ) + "%"}
                       </CBadge>
                     </h4>
@@ -83,23 +124,24 @@ const ProductManagement = () => {
                 ),
                 amount: (item) => (
                   <td>
-                    {(function () { return Math.floor(Math.random() * 1000) })()}
+                    {item.amount}
                   </td>
                 ),
                 price: (item) => (
                   <td>
-                    {Math.floor(Math.random() * 1000) * 1000}
+                    {item.price}
                   </td>
                 ),
                 promoPrice: (item) => (
                   <td>
-                    {Math.floor(Math.random() * 1000) * 1000}
+                    {item.promoPrice}
                   </td>
                 ),
                 actions: (item) => (
                   <td>
                     <CButton
                       onClick={() => {
+                        setMode("VIEW")
                         setProductSelected(item);
                         setShowModalDetail(true);
                       }}
@@ -114,204 +156,243 @@ const ProductManagement = () => {
           </CCol>
         </CRow>
 
-        <CModal show={showModalDetail} size="xl">
-          <CModalHeader>
-            <h3>Product Detail</h3>
-            <button
-              type="button"
-              class="close"
-              data-dismiss="modal"
-              aria-label="Close"
-              onClick={() => {
-                setShowModalDetail(false);
-                setMode("VIEW");
-                setProductSelected({});
-              }}
-            >
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </CModalHeader>
-          <CModalBody>
-            <CRow>
-              <CCol xs="12" lg="6" style={{ borderRight: "1px solid #bbb" }}>
-                <img
-                  width="100%"
-                  style={{
-                    border: "1px solid #bbb",
-                    boxShadow: "0px 0px 5px #888",
-                    maxHeight: "400px",
-                  }}
-                  src={
-                    mode !== "CREATE"
-                      ? productSelected.image
-                      : "https://thailamlandscape.vn/wp-content/uploads/2017/10/no-image.png"
-                  }
-                />
-                {mode !== "VIEW" && (
-                  <CButton className="mt-2" color="success">
-                    Upload Image
-                  </CButton>
-                )}
-              </CCol>
-              <CCol xs="12" lg="6" style={{ padding: "10px 20px" }}>
-                <CFormGroup row>
-                  <CCol md="3">
-                    <CLabel style={{ fontWeight: "bold" }}>ProductID</CLabel>
-                  </CCol>
-                  <CCol xs="12" md="9">
-                    {mode === "VIEW" ? (
+        {showModalDetail &&
+          <CModal show={showModalDetail} size="xl">
+            <CModalHeader>
+              <h3>Product Detail</h3>
+              <button
+                type="button"
+                class="close"
+                data-dismiss="modal"
+                aria-label="Close"
+                onClick={() => {
+                  setShowModalDetail(false);
+                  setMode("VIEW");
+                  setProductSelected({});
+                }}
+              >
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </CModalHeader>
+            <CModalBody>
+              <CRow>
+                <CCol xs="12" lg="6" style={{ borderRight: "1px solid #bbb" }}>
+                  <img
+                    width="100%"
+                    style={{
+                      border: "1px solid #bbb",
+                      boxShadow: "0px 0px 5px #888",
+                      maxHeight: "400px",
+                    }}
+                    src={
+                      productSelected.image
+                        ? productSelected.image
+                        : "https://thailamlandscape.vn/wp-content/uploads/2017/10/no-image.png"
+                    }
+                  />
+                  {mode !== "VIEW" && (
+                    <CInputFile
+                      onChange={async (e) => {
+                        let formData = new FormData();
+                        formData.append('file', e.target.files[0])
+                        let result = await request.upload(formData)
+                        if (result.e) return helper.toast('error', 'upload error')
+                        handleChangeProduct('image', result.data.Location)
+                      }}
+                    />
+                  )}
+                </CCol>
+                <CCol xs="12" lg="6" style={{ padding: "10px 20px" }}>
+                  <CFormGroup row>
+                    <CCol md="3">
+                      <CLabel style={{ fontWeight: "bold" }}>ProductID</CLabel>
+                    </CCol>
+                    <CCol xs="12" md="9">
+                      {mode === "VIEW" ? (
+                        <p className="form-control-static">
+                          {productSelected.idProduct}
+                        </p>
+                      ) : (
+                        <CInput
+                          id="text-input"
+                          name="text-input"
+                          value={productSelected.idProduct}
+                          placeholder="Text"
+                          onChange={(e) => handleChangeProduct("idProduct", e.target.value)}
+                        />
+                      )}
+                    </CCol>
+                  </CFormGroup>
+                  <CFormGroup row>
+                    <CCol md="3">
+                      <CLabel style={{ fontWeight: "bold" }}>Name</CLabel>
+                    </CCol>
+                    <CCol xs="12" md="9">
+                      {mode === "VIEW" ? (
+                        <p className="form-control-static">
+                          {productSelected.name}
+                        </p>
+                      ) : (
+                        <CInput
+                          id="text-input"
+                          name="text-input"
+                          value={productSelected.name}
+                          placeholder="Text"
+                          onChange={(e) => handleChangeProduct("name", e.target.value)}
+                        />
+                      )}
+                    </CCol>
+                  </CFormGroup>
+                  <CFormGroup row>
+                    <CCol md="3">
+                      <CLabel style={{ fontWeight: "bold" }}>Price</CLabel>
+                    </CCol>
+                    <CCol xs="12" md="9">
+                      {mode === "VIEW" ? (
+                        <p className="form-control-static">
+                          {productSelected.price}
+                        </p>
+                      ) : (
+                        <CInput
+                          type="number"
+                          id="text-input"
+                          name="text-input"
+                          value={productSelected.price}
+                          placeholder="Number"
+                          onChange={(e) => handleChangeProduct("price", e.target.value)}
+                        />
+                      )}
+                    </CCol>
+                  </CFormGroup>
+                  <CFormGroup row>
+                    <CCol md="3">
+                      <CLabel style={{ fontWeight: "bold" }}>Promo Price</CLabel>
+                    </CCol>
+                    <CCol xs="12" md="9">
+                      {mode === "VIEW" ? (
+                        <p className="form-control-static">
+                          {productSelected.promoPrice}
+                        </p>
+                      ) : (
+                        <CInput
+                          type="number"
+                          id="text-input"
+                          name="text-input"
+                          value={productSelected.promoPrice}
+                          placeholder="Number"
+                          onChange={(e) => handleChangeProduct("promoPrice", e.target.value)}
+                        />
+                      )}
+                    </CCol>
+                  </CFormGroup>
+                  <CFormGroup row>
+                    <CCol md="3">
+                      <CLabel style={{ fontWeight: "bold" }}>Amount</CLabel>
+                    </CCol>
+                    <CCol xs="12" md="9">
+                      {mode === "VIEW" ? (
+                        <p className="form-control-static">
+                          {productSelected.amount}
+                        </p>
+                      ) : (
+                        <CInput
+                          type="number"
+                          id="text-input"
+                          name="text-input"
+                          value={productSelected.amount}
+                          placeholder="Number"
+                          onChange={(e) => handleChangeProduct("amount", e.target.value)}
+                        />
+                      )}
+                    </CCol>
+                  </CFormGroup>
+                  <CFormGroup row>
+                    <CCol md="3">
+                      <CLabel style={{ fontWeight: "bold" }}>Description</CLabel>
+                    </CCol>
+                    <CCol xs="12" md="9">
+                      {mode === "VIEW" ? (
+                        <p className="form-control-static">
+                          {productSelected.desc}
+                        </p>
+                      ) : (
+                        <CInput
+                          id="text-input"
+                          name="text-input"
+                          value={productSelected.desc}
+                          placeholder="Text"
+                          onChange={(e) => handleChangeProduct("description", e.target.value)}
+                        />
+                      )}
+                    </CCol>
+                  </CFormGroup>
+                  <CFormGroup row>
+                    <CCol md="3">
+                      <CLabel style={{ fontWeight: "bold" }}>Type</CLabel>
+                    </CCol>
+                    <CCol xs="12" md="9">
                       <p className="form-control-static">
-                        {productSelected.productId}
+                        {mode !== "CREATE" ? productSelected.type : productType}
                       </p>
-                    ) : (
-                      <CInput
-                        id="text-input"
-                        name="text-input"
-                        value={productSelected.productId}
-                        placeholder="Text"
-                      />
-                    )}
-                  </CCol>
-                </CFormGroup>
-                <CFormGroup row>
-                  <CCol md="3">
-                    <CLabel style={{ fontWeight: "bold" }}>Name</CLabel>
-                  </CCol>
-                  <CCol xs="12" md="9">
-                    {mode === "VIEW" ? (
-                      <p className="form-control-static">
-                        {productSelected.name}
-                      </p>
-                    ) : (
-                      <CInput
-                        id="text-input"
-                        name="text-input"
-                        value={productSelected.name}
-                        placeholder="Text"
-                      />
-                    )}
-                  </CCol>
-                </CFormGroup>
-                <CFormGroup row>
-                  <CCol md="3">
-                    <CLabel style={{ fontWeight: "bold" }}>Price</CLabel>
-                  </CCol>
-                  <CCol xs="12" md="9">
-                    {mode === "VIEW" ? (
-                      <p className="form-control-static">
-                        {productSelected.price}
-                      </p>
-                    ) : (
-                      <CInput
-                        id="text-input"
-                        name="text-input"
-                        value={productSelected.price}
-                        placeholder="Number"
-                      />
-                    )}
-                  </CCol>
-                </CFormGroup>
-                <CFormGroup row>
-                  <CCol md="3">
-                    <CLabel style={{ fontWeight: "bold" }}>Promo Price</CLabel>
-                  </CCol>
-                  <CCol xs="12" md="9">
-                    {mode === "VIEW" ? (
-                      <p className="form-control-static">
-                        {productSelected.promoPrice}
-                      </p>
-                    ) : (
-                      <CInput
-                        id="text-input"
-                        name="text-input"
-                        value={productSelected.promoPrice}
-                        placeholder="Number"
-                      />
-                    )}
-                  </CCol>
-                </CFormGroup>
-                <CFormGroup row>
-                  <CCol md="3">
-                    <CLabel style={{ fontWeight: "bold" }}>Amount</CLabel>
-                  </CCol>
-                  <CCol xs="12" md="9">
-                    {mode === "VIEW" ? (
-                      <p className="form-control-static">
-                        {productSelected.amount}
-                      </p>
-                    ) : (
-                      <CInput
-                        id="text-input"
-                        name="text-input"
-                        value={productSelected.amount}
-                        placeholder="Number"
-                      />
-                    )}
-                  </CCol>
-                </CFormGroup>
-                <CFormGroup row>
-                  <CCol md="3">
-                    <CLabel style={{ fontWeight: "bold" }}>Description</CLabel>
-                  </CCol>
-                  <CCol xs="12" md="9">
-                    {mode === "VIEW" ? (
-                      <p className="form-control-static">
-                        {productSelected.desc}
-                      </p>
-                    ) : (
-                      <CInput
-                        id="text-input"
-                        name="text-input"
-                        value={productSelected.desc}
-                        placeholder="Text"
-                      />
-                    )}
-                  </CCol>
-                </CFormGroup>
-                <CFormGroup row>
-                  <CCol md="3">
-                    <CLabel style={{ fontWeight: "bold" }}>Type</CLabel>
-                  </CCol>
-                  <CCol xs="12" md="9">
-                    <p className="form-control-static">
-                      {mode !== "CREATE" ? productSelected.type : productType}
-                    </p>
-                  </CCol>
-                </CFormGroup>
-              </CCol>
-            </CRow>
-          </CModalBody>
-          <CModalFooter>
-            {mode === "VIEW" && (
-              <>
-                <CButton color="primary" onClick={() => setMode("EDIT")}>
-                  Edit
+                    </CCol>
+                  </CFormGroup>
+                </CCol>
+              </CRow>
+            </CModalBody>
+            <CModalFooter>
+              {mode === "VIEW" && (
+                <>
+                  <CButton color="primary" onClick={() => setMode("EDIT")}>
+                    Edit
                 </CButton>
 
-                <CButton
-                  color="danger"
-                  onClick={() => setShowModalDetail(false)}
-                >
-                  Delete
+                  <CButton
+                    color="danger"
+                    onClick={async () => {
+                      let result = await request.request('/api/product/' + productSelected.id,
+                        productSelected, "DELETE")
+                      if (result.e) return helper.toast('error', 'error')
+                      setIsUpdate(isUpdate + 1)
+                      setShowModalDetail(false)
+                      helper.toast('success', 'Delete successfully!!!')
+                    }}
+                  >
+                    Delete
                 </CButton>
-              </>
-            )}
-            {mode === "EDIT" && (
-              <>
-                <CButton color="success" onClick={() => console.log("update")}>
-                  Update
+                </>
+              )}
+              {mode === "EDIT" && (
+                <>
+                  <CButton color="success" onClick={async () => {
+                    if (!handleValidate()) return
+                    let result = await request.request('/api/product/' + productSelected.id,
+                      productSelected, "PATCH")
+                    if (result.e) return helper.toast('error', 'error')
+                    setIsUpdate(isUpdate + 1)
+                    setShowModalDetail(false)
+                    helper.toast('success', 'Update successfully!!!')
+                  }}>
+                    Update
                 </CButton>
-              </>
-            )}
-            {mode === "CREATE" && (
-              <>
-                <CButton color="success" onClick={() => console.log("update")}>
-                  Create
+                </>
+              )}
+              {mode === "CREATE" && (
+                <>
+                  <CButton color="success" onClick={async () => {
+                    if (!handleValidate()) return
+                    let result = await request.request('/api/product', productSelected)
+                    if (result.e) return helper.toast('error', 'error')
+                    setIsUpdate(isUpdate + 1)
+                    setShowModalDetail(false)
+                    helper.toast('success', 'Create successfully!!!')
+                  }}>
+                    Create
                 </CButton>
-              </>
-            )}
-          </CModalFooter>
-        </CModal>
+                </>
+              )}
+            </CModalFooter>
+          </CModal>
+        }
       </CCardBody>
     </CCard>
   );
@@ -320,7 +401,7 @@ export default ProductManagement;
 
 const fields = [
   { key: "no", label: "No", _style: { width: "5%" } },
-  { key: "productId", label: "Product ID", _style: { width: "15%" } },
+  { key: "idProduct", label: "Product ID", _style: { width: "15%" } },
   { key: "name", label: "Name", _style: { width: "20%" } },
   { key: "price", label: "Price", _style: { width: "20%" } },
   { key: "promoPrice", label: "Promo Price", _style: { width: "20%" } },
@@ -328,343 +409,4 @@ const fields = [
   { key: "amount", label: "Amount", _style: { width: "10%" } },
   { key: "actions", _style: { width: "10%" } },
 ];
-const PRODUCTTYPE = ["Dog Foot", "Cat Foot", "ABC"];
-
-const usersData = [
-  {
-    no: 1,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 20,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 2,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 20,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 3,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 20,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-  {
-    no: 4,
-    productId: "PRO001",
-    image:
-      "https://dizibrand.com/wp-content/uploads/2019/07/product-marketing-la-gi-dizibrand-1.jpg",
-    name: "Product 01",
-    price: 1000000,
-    promoPrice: 900000,
-    amount: 0,
-    desc: "afefefewwfwfefesds",
-    type: "Dog Food",
-  },
-];
+const PRODUCTTYPE = ["Thuc an", "Quan Ao", "Chuong", "Phu kien", "Dung cu ve sinh", "Thuoc", "Do choi", "Lam dep"];

@@ -8,15 +8,15 @@ import {
 
 const TheLayout = (props) => {
   let session = JSON.parse(sessionStorage.getItem('session'))
-  // if (!session) {
-  //   props.history.replace('/login')
-  // }
+  if (!session) {
+    props.history.replace('/login')
+  }
 
   return (
     <div className="c-app c-default-layout">
       <TheSidebar />
       <div className="c-wrapper">
-        <TheHeader />
+        <TheHeader props={props} />
         <div className="c-body">
           <TheContent />
         </div>

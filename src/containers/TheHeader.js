@@ -23,7 +23,7 @@ import {
   TheHeaderDropdownTasks
 } from './index'
 
-const TheHeader = () => {
+const TheHeader = (props) => {
   const dispatch = useDispatch()
   const sidebarShow = useSelector(state => state.sidebarShow)
 
@@ -55,10 +55,7 @@ const TheHeader = () => {
           className="border-0 c-subheader-nav m-0 px-0 px-md-3"
           routes={routes}
         />
-        {/* <TheHeaderDropdownNotif/>
-        <TheHeaderDropdownTasks/>
-        <TheHeaderDropdownMssg/>
-        <TheHeaderDropdown/> */}
+        <TheHeaderDropdown props={props.props} />
       </CHeaderNav>
     </CHeader>
   )
