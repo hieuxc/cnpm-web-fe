@@ -51,9 +51,10 @@ const ProductOrder = () => {
 
   const handleClickDetail = async (t) => {
     try {
-      let pd = await request.request(`/api/productorderdetail?idProductOrder=${t.idProductOrder}`, 'GET')
+      let pd = await request.request(`/api/productorderdetail?idProductOrder=${t.idProductOrder}`, {}, 'GET')
       setProductOrderSelected(t)
-      setOrderDetail(pd)
+      console.log(pd)
+      setOrderDetail(pd.data)
     } catch (error) {
       console.log(error)
     }
@@ -187,32 +188,16 @@ const ProductOrder = () => {
             <CRow>
               <CCol xs="12">
                 <CDataTable
-                  items={orderDetail}
+                  items={orderDetail || []}
                   fields={productFields}
                   striped
                   border
                   itemsPerPage={20}
                   pagination
                   scopedSlots={{
-                    address: (item) => {
-                      <td style={{ maxWidth: "400px" }}>
-                        {item}
-                      </td>
-                    },
-                    actions: (item) => (
-                      <td>
-                        <CButton
-                          onClick={() => {
-                            handleClickDetail(item);
-                            setProductOrderSelected(item);
-                            setShowModalDetail(true);
-                          }}
-                          color="primary"
-                        >
-                          Detail
-                        </CButton>
-                      </td>
-                    ),
+                    no: (item, index) => (
+                      <td>{index + 1}</td>
+                    )
                   }}
                 />
               </CCol>
@@ -223,9 +208,10 @@ const ProductOrder = () => {
               <>
                 <CButton color="info"
                   onClick={async () => {
-                    let formData = new FormData()
-                    formData.append('status', 'delivered')
-                    let result = await request.request(`/api/productOrder/${productOrderSelected.id}`, formData, "PATCH")
+                    let result = await request.request(`/api/productOrder/${productOrderSelected.id}`,
+                      { status: 'delivered' },
+                      "PATCH"
+                    )
                     setIsUpdate(isUpdate + 1)
                     setShowModalDetail(false)
                   }}>
@@ -234,9 +220,10 @@ const ProductOrder = () => {
                 <CButton
                   color="danger"
                   onClick={async () => {
-                    let formData = new FormData()
-                    formData.append('status', 'cancel')
-                    let result = await request.request(`/api/productOrder/${productOrderSelected.id}`, formData, "PATCH")
+                    let result = await request.request(`/api/productOrder/${productOrderSelected.id}`,
+                      { status: 'cancel' },
+                      "PATCH"
+                    )
                     setIsUpdate(isUpdate + 1)
                     setShowModalDetail(false)
                   }}
@@ -248,7 +235,7 @@ const ProductOrder = () => {
           </CModalFooter>
         </CModal>
       </CCardBody>
-    </CCard>
+    </CCard >
   );
 };
 export default ProductOrder;
