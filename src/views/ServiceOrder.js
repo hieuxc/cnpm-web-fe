@@ -19,10 +19,21 @@ import {
   CFormGroup,
   CLabel,
 } from "@coreui/react";
-
+import request from "../services/request";
 const ServiceOrder = () => {
-  const [serviceOrder, setserviceOrder] = useState(usersData);
-  const [serviceOrderSelected, setserviceOrderSelected] = useState({});
+  const [serviceOrder, setServiceOrder] = useState([]);
+  useEffect(() => {
+    let fetchData = async () => {
+      let result = await request.request('/api/serviceorder', '', 'GET')
+      setServiceOrder(result.data)
+    }
+    fetchData()
+  }, [])
+  const convertTime = (t) => {
+    let tm = new Date(t)
+    console.log(tm, t)
+    return tm.toDateString()
+  }
   return (
     <CCard accentColor="success">
       <CCardHeader>
@@ -40,21 +51,14 @@ const ServiceOrder = () => {
               fields={fields}
               striped
               border
-              itemsPerPage={5}
+              itemsPerPage={10}
               pagination
               scopedSlots={{
-                actions: (item) => (
-                  <td>
-                    <CButton
-                      onClick={() => {
-                        // setserviceOrderSelected(item);
-                        // setShowModalDetail(true);
-                      }}
-                      color="primary"
-                    >
-                      Detail
-                    </CButton>
-                  </td>
+                no: (item, index) => (
+                  <td>{index + 1}</td>
+                ),
+                createdAt: (item) => (
+                  <td>{convertTime(item.createdAt)}</td>
                 ),
               }}
             />
@@ -68,105 +72,14 @@ export default ServiceOrder;
 
 const fields = [
   { key: "no", label: "No", _style: { width: "5%" } },
-  { key: "proOrderId", label: "Order ID", _style: { width: "10%" } },
-  { key: "customerId", label: "Customer ID", _style: { width: "10%" } },
-  { key: "phone", label: "Phone", _style: { width: "10%" } },
-  { key: "name", label: "Name", _style: { width: "10%" } },
+  { key: "idServiceOrder", label: "Order ID", _style: { width: "7%" } },
+  { key: "idCustomer", label: "Customer ID", _style: { width: "8%" } },
+  { key: "nameService", label: "Name Service", _style: { width: "10%" } },
+  { key: "nameCustomer", label: "Name Customer", _style: { width: "10%" } },
   { key: "address", label: "Address", _style: { width: "20%" } },
-  { key: "totalPrice", label: "Total Price", _style: { width: "10%" } },
-  { key: "orderDate", label: "Order Date", _style: { width: "10%" } },
+  { key: "time", label: "Time", _style: { width: "10%" } },
+  { key: "price", label: "Price", _style: { width: "7%" } },
+  { key: "promoPrice", label: "Promo Price", _style: { width: "8%" } },
+  { key: "createdAt", label: "Order Date", _style: { width: "10%" } },
   // { key: "actions", _style: { width: "5%" } },
-];
-
-const usersData = [
-  {
-    no: 1,
-    proOrderId: "SerOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "SerOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "SerOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "SerOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "SerOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "SerOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "SerOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "SerOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "SerOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
 ];

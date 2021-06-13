@@ -19,14 +19,45 @@ import {
   CFormGroup,
   CLabel,
 } from "@coreui/react";
-
+import request from '../services/request'
 const ProductOrder = () => {
-  const [productOrder, setProductOrder] = useState(usersData);
-  const [orderDetail, setOrderDetail] = useState(orderDetailData);
+  const [productOrderAll, setProductOrderAll] = useState([]);
+  const [productOrder, setProductOrder] = useState([]);
+  const [orderDetail, setOrderDetail] = useState([]);
   const [productOrderSelected, setProductOrderSelected] = useState({});
   const [productOrderType, setProductOrderType] = useState(PRODUCTORDERTYPE[0]);
   const [showModalDetail, setShowModalDetail] = useState(false);
-  useEffect(() => { }, [productOrderType]);
+  const [isUpdate, setIsUpdate] = useState(0)
+  useEffect(() => {
+    let fetchData = async () => {
+      try {
+        let result = await request.request('/api/productorder?sort=createdAt DESC', '', 'GET')
+        setProductOrderAll(result.data)
+      } catch (error) {
+        console.log(error)
+      }
+    }
+    fetchData()
+  }, [isUpdate])
+  useEffect(() => {
+    let p = productOrderAll.filter(e => e.status === productOrderType)
+    setProductOrder(p)
+  }, [productOrderType, productOrderAll])
+
+  const convertTime = (t) => {
+    let tm = new Date(t)
+    return tm.toDateString()
+  }
+
+  const handleClickDetail = async (t) => {
+    try {
+      let pd = await request.request(`/api/productorderdetail?idProductOrder=${t.idProductOrder}`, 'GET')
+      setProductOrderSelected(t)
+      setOrderDetail(pd)
+    } catch (error) {
+      console.log(error)
+    }
+  }
   return (
     <CCard accentColor="success">
       <CCardHeader>
@@ -56,21 +87,11 @@ const ProductOrder = () => {
               itemsPerPage={5}
               pagination
               scopedSlots={{
-                sale: (item) => (
-                  <td>
-                    <h4>
-                      <CBadge color="danger">
-                        {Math.floor(
-                          100 - (item.promoPrice / item.price) * 100
-                        ) + "%"}
-                      </CBadge>
-                    </h4>
-                  </td>
-                ),
                 actions: (item) => (
                   <td>
                     <CButton
                       onClick={() => {
+                        handleClickDetail(item)
                         setProductOrderSelected(item);
                         setShowModalDetail(true);
                       }}
@@ -79,6 +100,12 @@ const ProductOrder = () => {
                       Detail
                     </CButton>
                   </td>
+                ),
+                no: (item, index) => (
+                  <td>{index + 1}</td>
+                ),
+                createdAt: (item) => (
+                  <td>{convertTime(item.createdAt)}</td>
                 ),
               }}
             />
@@ -111,7 +138,7 @@ const ProductOrder = () => {
                   </CCol>
                   <CCol xs="12" md="9">
                     <p className="form-control-static">
-                      {productOrderSelected.proOrderId}
+                      {productOrderSelected.idProductOrder}
                     </p>
                   </CCol>
                 </CFormGroup>
@@ -176,6 +203,7 @@ const ProductOrder = () => {
                       <td>
                         <CButton
                           onClick={() => {
+                            handleClickDetail(item);
                             setProductOrderSelected(item);
                             setShowModalDetail(true);
                           }}
@@ -191,16 +219,29 @@ const ProductOrder = () => {
             </CRow>
           </CModalBody>
           <CModalFooter>
-            {productOrderType === "Unconfirmed" && (
+            {productOrderType === "pending" && (
               <>
-                <CButton color="info" onClick={() => setShowModalDetail(false)}>
-                  Confirmed
+                <CButton color="info"
+                  onClick={async () => {
+                    let formData = new FormData()
+                    formData.append('status', 'delivered')
+                    let result = await request.request(`/api/productOrder/${productOrderSelected.id}`, formData, "PATCH")
+                    setIsUpdate(isUpdate + 1)
+                    setShowModalDetail(false)
+                  }}>
+                  delivered
                 </CButton>
                 <CButton
                   color="danger"
-                  onClick={() => setShowModalDetail(false)}
+                  onClick={async () => {
+                    let formData = new FormData()
+                    formData.append('status', 'cancel')
+                    let result = await request.request(`/api/productOrder/${productOrderSelected.id}`, formData, "PATCH")
+                    setIsUpdate(isUpdate + 1)
+                    setShowModalDetail(false)
+                  }}
                 >
-                  Canceled
+                  cancel
                 </CButton>
               </>
             )}
@@ -211,202 +252,21 @@ const ProductOrder = () => {
   );
 };
 export default ProductOrder;
-
-
-const orderDetailData = [
-  {
-    no: 1,
-    productId: "PRO001",
-    name: "Product 01",
-    price: 1000000,
-    amount: 20,
-    type: "Dog Food",
-  },
-  {
-    no: 1,
-    productId: "PRO001",
-    name: "Product 01",
-    price: 1000000,
-    amount: 20,
-    type: "Dog Food",
-  },
-  {
-    no: 1,
-    productId: "PRO001",
-    name: "Product 01",
-    price: 1000000,
-    amount: 20,
-    type: "Dog Food",
-  },
-  {
-    no: 1,
-    productId: "PRO001",
-    name: "Product 01",
-    price: 1000000,
-    amount: 20,
-    type: "Dog Food",
-  },
-];
 const productFields = [
   { key: "no", label: "No", _style: { width: "5%" } },
-  { key: "productId", label: "Product ID", _style: { width: "20%" } },
+  { key: "idProduct", label: "Product Order ID", _style: { width: "20%" } },
   { key: "name", label: "Product Name", _style: { width: "20%" } },
   { key: "price", label: "Price", _style: { width: "20%" } },
   { key: "amount", label: "Amount", _style: { width: "20%" } },
-  { key: "type", label: "Product Type", _style: { width: "15%" } },
 ];
 const fields = [
   { key: "no", label: "No", _style: { width: "5%" } },
-  { key: "proOrderId", label: "Order ID", _style: { width: "10%" } },
-  { key: "customerId", label: "Customer ID", _style: { width: "10%" } },
-  { key: "phone", label: "Phone", _style: { width: "10%" } },
+  { key: "idProductOrder", label: "Order ID", _style: { width: "10%" } },
+  { key: "idCustomer", label: "Customer ID", _style: { width: "10%" } },
   { key: "name", label: "Name", _style: { width: "10%" } },
   { key: "address", label: "Address", _style: { width: "20%" } },
   { key: "totalPrice", label: "Total Price", _style: { width: "10%" } },
-  { key: "orderDate", label: "Order Date", _style: { width: "10%" } },
+  { key: "createdAt", label: "Order Date", _style: { width: "10%" } },
   { key: "actions", _style: { width: "5%" } },
 ];
-const PRODUCTORDERTYPE = ["Unconfirmed", "Confirmed", "Canceled"];
-
-const usersData = [
-  {
-    no: 1,
-    proOrderId: "ProOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "ProOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "ProOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "ProOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "ProOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "ProOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "ProOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "ProOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "ProOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "ProOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "ProOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "ProOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "ProOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-  {
-    no: 1,
-    proOrderId: "ProOrder001",
-    customerId: "Customer001",
-    phone: "0987654321",
-    name: "le duong hung",
-    address: "jaeghrufyqefeyqfuddddddddddd vvfvfvf frfrfrfr frfr ddqeifgufuge",
-    totalPrice: 3000000,
-    orderDate: "22/2/2020",
-  },
-];
+const PRODUCTORDERTYPE = ["pending", "delivered", "cancel"];
