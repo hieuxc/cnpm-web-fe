@@ -20,6 +20,7 @@ import {
   CLabel,
 } from "@coreui/react";
 import request from '../services/request'
+import Swal from 'sweetalert2'
 const ProductOrder = () => {
   const [productOrderAll, setProductOrderAll] = useState([]);
   const [productOrder, setProductOrder] = useState([]);
@@ -208,24 +209,55 @@ const ProductOrder = () => {
               <>
                 <CButton color="info"
                   onClick={async () => {
-                    let result = await request.request(`/api/productOrder/${productOrderSelected.id}`,
-                      { status: 'delivered' },
-                      "PATCH"
-                    )
-                    setIsUpdate(isUpdate + 1)
-                    setShowModalDetail(false)
+                    Swal.fire({
+                      title: 'Are you sure?',
+                      icon: 'warning',
+                      showCancelButton: true,
+                      confirmButtonColor: '#3085d6',
+                      cancelButtonColor: '#d33',
+                      confirmButtonText: 'Yes, it has been delivered!'
+                    }).then(async (result) => {
+                      if (result.isConfirmed) {
+                        let result = await request.request(`/api/productOrder/${productOrderSelected.id}`,
+                          { status: 'delivered' },
+                          "PATCH"
+                        )
+                        setIsUpdate(isUpdate + 1)
+                        setShowModalDetail(false)
+                        Swal.fire(
+                          'Delivered!',
+                          'success'
+                        )
+                      }
+                    })
+
                   }}>
                   delivered
                 </CButton>
                 <CButton
                   color="danger"
                   onClick={async () => {
-                    let result = await request.request(`/api/productOrder/${productOrderSelected.id}`,
-                      { status: 'cancel' },
-                      "PATCH"
-                    )
-                    setIsUpdate(isUpdate + 1)
-                    setShowModalDetail(false)
+                    Swal.fire({
+                      title: 'Are you sure?',
+                      icon: 'warning',
+                      showCancelButton: true,
+                      confirmButtonColor: '#3085d6',
+                      cancelButtonColor: '#d33',
+                      confirmButtonText: 'Yes, cancel it!'
+                    }).then(async (result) => {
+                      if (result.isConfirmed) {
+                        let result = await request.request(`/api/productOrder/${productOrderSelected.id}`,
+                          { status: 'cancel' },
+                          "PATCH"
+                        )
+                        setIsUpdate(isUpdate + 1)
+                        setShowModalDetail(false)
+                        Swal.fire(
+                          'Canceled!',
+                          'success'
+                        )
+                      }
+                    })
                   }}
                 >
                   cancel
