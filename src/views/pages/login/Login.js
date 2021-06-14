@@ -34,9 +34,6 @@ const Login = (props) => {
           {" "}
           <i class="fa fa-send"></i>Login
       </button>
-        <p class="fs">
-          Forgot <a href="#">Password</a> ?{" "}
-        </p>
       </div>
     </div>
   );

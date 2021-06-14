@@ -13,7 +13,7 @@ const MainChartExample = ({ styles }) => {
     let elements = 27
     const data1 = []
     for (let i = 0; i <= elements; i++) {
-      data1.push(random(50, 200))
+      data1.push(random(1000000, 30000000))
     }
     return [
       {
@@ -44,7 +44,7 @@ const MainChartExample = ({ styles }) => {
             beginAtZero: true,
             maxTicksLimit: 5,
             stepSize: Math.ceil(250 / 5),
-            max: 250
+            max: 30000000
           },
           gridLines: {
             display: true
@@ -66,10 +66,10 @@ const MainChartExample = ({ styles }) => {
   // render
   return (
     <CChartLine
-      {...styles}
+      style={styles}
       datasets={defaultDatasets}
       options={defaultOptions}
-      labels={['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']}
+      labels={['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su',]}
     />
   )
 }

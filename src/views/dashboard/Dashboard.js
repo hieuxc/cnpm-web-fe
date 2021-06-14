@@ -23,21 +23,17 @@ const Dashboard = () => {
         <CCardBody>
           <CRow>
             <CCol sm="5">
-              <h4 id="traffic" className="card-title mb-0">Traffic</h4>
-              <div className="small text-muted">November 2017</div>
+              <h3 id="traffic" className="card-title mb-0">Doanh Thu</h3>
             </CCol>
             <CCol sm="7" className="d-none d-md-block">
-              <CButton color="primary" className="float-right">
-                <CIcon name="cil-cloud-download" />
-              </CButton>
               <CButtonGroup className="float-right mr-3">
                 {
-                  ['Day', 'Month', 'Year'].map(value => (
+                  ['Day', 'Week', 'Month'].map(value => (
                     <CButton
                       color="outline-secondary"
                       key={value}
                       className="mx-0"
-                      active={value === 'Month'}
+                      active={value === 'Week'}
                     >
                       {value}
                     </CButton>
@@ -46,7 +42,12 @@ const Dashboard = () => {
               </CButtonGroup>
             </CCol>
           </CRow>
-          <MainChartExample style={{ height: '200px', marginTop: '40px' }} />
+          <CRow>
+            <CCol sm="12">
+              <h4 id="traffic" className="card-title mb-0">99.000.000 VND</h4>
+            </CCol>
+          </CRow>
+          <MainChartExample styles={{ height: '500px', marginTop: '40px' }} />
         </CCardBody>
       </CCard>
     </>
