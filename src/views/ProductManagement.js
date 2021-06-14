@@ -35,11 +35,22 @@ const ProductManagement = () => {
   const [isUpdate, setIsUpdate] = useState(0)
 
   useEffect(() => {
-    let fetchData = async () => {
-      let result = await request.request('/api/product', '', 'GET')
-      setProductAll(result.data)
+    try {
+      let fetchData = async () => {
+        let data = [], step = 30;
+        for (let i = 0; i < 10; i++) {
+          let result = await request.request(`/api/product?skip=${i * step}&limit=30`, '', 'GET')
+          if (result.data && result.data.length > 0) {
+            data.push(...result.data)
+            if (result.data.length < 30) break
+          } else break;
+        }
+        setProductAll(data)
+      }
+      fetchData()
+    } catch (error) {
+      console.log(error)
     }
-    fetchData()
   }, [isUpdate])
 
   useEffect(() => {
