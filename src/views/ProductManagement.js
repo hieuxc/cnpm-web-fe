@@ -31,6 +31,7 @@ const ProductManagement = () => {
   const [productType, setProductType] = useState(PRODUCTTYPE[0]);
   const [showModalDetail, setShowModalDetail] = useState(false);
   const [mode, setMode] = useState("VIEW");
+  const [input, setInput] = useState("")
   const [isUpdate, setIsUpdate] = useState(0)
 
   useEffect(() => {
@@ -89,6 +90,21 @@ const ProductManagement = () => {
         </CRow>
       </CCardHeader>
       <CCardBody>
+        <div class="input-group mb-2 mr-sm-2" style={{ width: "300px" }}>
+          <div class="input-group-prepend">
+            <div class="input-group-text">ProductID</div>
+          </div>
+          <input type="text"
+            value={input}
+            onChange={(e) => { setInput(e.target.value) }}
+            class="form-control" id="inlineFormInputGroupUsername2" placeholder="ProductID" />
+          <CButton color="secondary"
+            onClick={() => {
+              let r = productAll.filter(p => p.idProduct.includes(input.toUpperCase()) && p.type === productType)
+              setProduct(r)
+            }}
+          >Search</CButton>
+        </div>
         <CTabs>
           <CNav variant="tabs">
             {PRODUCTTYPE.map((p) => (
@@ -344,7 +360,7 @@ const ProductManagement = () => {
                 <>
                   <CButton color="primary" onClick={() => setMode("EDIT")}>
                     Edit
-                </CButton>
+                  </CButton>
 
                   <CButton
                     color="danger"
@@ -358,7 +374,7 @@ const ProductManagement = () => {
                     }}
                   >
                     Delete
-                </CButton>
+                  </CButton>
                 </>
               )}
               {mode === "EDIT" && (
@@ -373,7 +389,7 @@ const ProductManagement = () => {
                     helper.toast('success', 'Update successfully!!!')
                   }}>
                     Update
-                </CButton>
+                  </CButton>
                 </>
               )}
               {mode === "CREATE" && (
@@ -387,7 +403,7 @@ const ProductManagement = () => {
                     helper.toast('success', 'Create successfully!!!')
                   }}>
                     Create
-                </CButton>
+                  </CButton>
                 </>
               )}
             </CModalFooter>
